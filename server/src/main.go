@@ -1,4 +1,4 @@
-package src
+package main
 
 import (
 	"fmt"
@@ -6,9 +6,11 @@ import (
 	"net/http"
 	//"strings"
 	//"strconv"
+	"io/ioutil"
 )
 
 const (
+	html_dir = "server/html/"
 	pageTop    = `<!DOCTYPE HTML><html align="center"><head>
 <style>.error{color:#FF0000;}</style></head><title>Statistics</title>
 <body><h3>Statistics</h3>
@@ -43,10 +45,10 @@ func main() {
 
 func homePage(writer http.ResponseWriter, request *http.Request) {
 	err := request.ParseForm() // Must be called before writing response
-	fmt.Fprint(writer, pageTop, form)
+	main_page_template, err := ioutil.ReadFile(html_dir+"home_page.html")
+	fmt.Fprint(writer, string(main_page_template))
 	if err != nil {
 		fmt.Fprintf(writer, anError, err)
 	}
 }
-
 
