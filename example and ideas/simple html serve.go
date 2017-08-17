@@ -1,4 +1,4 @@
-/ Copyright © 2010-12 Qtrac Ltd.
+// Copyright © 2010-12 Qtrac Ltd.
 // 
 // This program or package and any associated files are licensed under the
 // Apache License, Version 2.0 (the "License"); you may not use these files
