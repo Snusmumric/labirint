@@ -1,0 +1,17 @@
+package playchar
+
+import(
+
+)
+
+type position struct {
+	Posx int
+	Posy int
+}
+
+type Playchar struct {
+	Healthpoints int
+	//position *cell //or i,j int
+	// address of cell may not survive save-load process
+	Position position
+}
