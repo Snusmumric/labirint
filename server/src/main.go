@@ -36,3 +36,45 @@ func homePage(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func moveAction(res http.ResponseWriter, req *http.Request)  { // error
+	err := req.ParseForm()
+	if err != nil {
+		fmt.Fprintf(res, "Error with url parsing occupyed\n")
+		fmt.Fprintf(res,"Error with id input occupyed\n")
+		return
+	}
+
+	PlayerStr := req.URL.Query().Get("PlayerId")
+	PlayerId, err := strconv.Atoi(PlayerStr)
+	_ = PlayerId
+	if err != nil {
+		fmt.Fprintf(res, "Error with PlayerId input occupyed\n")
+		fmt.Fprintf(res,"Error with id input occupyed\n")
+		return
+	}
+
+	GameStr := req.URL.Query().Get("GameId")
+	GameId, err := strconv.Atoi(GameStr)
+	if err != nil {
+		fmt.Fprintf(res, "Error with id input occupyed\n")
+		fmt.Fprintf(res,"Error with id input occupyed\n")
+		return
+	}
+
+	MoveStr := req.URL.Query().Get("Move")
+
+	gameToUse := globGameBase[GameId]
+
+	switch MoveStr {
+	case "up":
+		gameToUse.Gg.Pos.Posy++
+	case "dn":
+		gameToUse.Gg.Pos.Posy--
+	case "rt":
+		gameToUse.Gg.Pos.Posx++
+	case "lf":
+		gameToUse.Gg.Pos.Posy--
+	}
+
+	fmt.Fprintf(res, "You have entered another dungeon! %s\n", MoveStr)
+}
