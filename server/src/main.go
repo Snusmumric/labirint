@@ -15,6 +15,24 @@ const (
 )
 
 
+type userbase map[string]user.User    // int - id of players
+type globalScorebase map[int]int      // [user_id] score (global score!? == sum of scores from all games?)           !!!!!!!!
+type globalGameBase map[int]game.Game //[game_id]game
+
+//=============global=========================
+//-----------data bases-----------------------
+var userDataBase userbase
+var userScoreDataBase globalScorebase
+var globGameBase globalGameBase
+
+//--------------------------------------------
+var userNum int
+var globalGameNum int
+var mu sync.Mutex
+var countOfRequests int
+var mapSize = 3
+
+//============================================
 
 func main() {
 	http.HandleFunc("/", homePage)
