@@ -3,18 +3,20 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"game"
 	"gmap"
 	"log"
 	"net/http"
+	"user"
 	"worker_pool"
 	//"strings"
 	"io/ioutil"
 	"strconv"
 )
 
-type userbase map[int]user       // int - id of players
-type globalScorebase map[int]int // [user_id] score (global score!? == sum of scores from all games?)           !!!!!!!!
-type globalGameBase map[int]game //[game_id]game
+type userbase map[int]user.User       // int - id of players
+type globalScorebase map[int]int      // [user_id] score (global score!? == sum of scores from all games?)           !!!!!!!!
+type globalGameBase map[int]game.Game //[game_id]game
 
 const (
 	html_dir = "server/html/"
@@ -24,6 +26,18 @@ const (
 type apiError struct {
 	Error error `json: error`
 	Code  int   `json: code`
+}
+
+func ReportError(writer http.ResponseWriter, code int, err error) {
+	fmt.Fprintf(writer, json.Marshall(
+		apiError{
+			Error: err,
+			Code:  code,
+		},
+	),
+	)
+	return
+
 }
 
 const InvalidRequest appError = appError{
@@ -42,6 +56,15 @@ func main() {
 	}
 }
 
+func GetUser(user_id int) (user.User, error) {
+	user, ok := userDataBase[user_id]
+	if !ok {
+		return nil, fmt.Errorf("Warn: no such user in base!")
+	}
+
+	return user, nil
+}
+
 func homePage(writer http.ResponseWriter, request *http.Request) {
 	err := request.ParseForm() // Must be called before writing response
 	main_page_template, err := ioutil.ReadFile(html_dir + "home_page.html")
@@ -56,18 +79,22 @@ func startAction(writer http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		fmt.Fprintf(writer, json.Marshal(InvalidRequest))
+		return
 	}
 
 	str := req.URL.Query().Get("id")
 	id, err := strconv.Atoi(str)
 
 	if err != nil {
-		fmt.Fprintf(writer, json.Marshall(
-			apiError{
-				Error: fmt.Errorf("Error with id input occupyed"),
-				Code:  400,
-			}),
-		)
+		ReportError(writer, 400, err)
+		return
+	}
+
+	user, err := GetUser(id)
+
+	if err != nil {
+		ReportError(writer, 400, fmt.Errorf("Get User Error: %s", err))
+		return
 	}
 
 }
