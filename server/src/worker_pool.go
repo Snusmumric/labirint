@@ -4,7 +4,7 @@ type taskArgs []interface{}
 
 type handler func(...interface{})
 
-type task struct {
+type Task struct {
 	taskArgs taskArgs
 	handler  interface{}
 }
@@ -21,20 +21,18 @@ func NewPool(capacity int, chanSize int) {
 	}
 }
 
-func (p *Pool) Run() {
+func (p *WorkerPool) Run() {
 	for i := 0; i < p.capacity; i++ {
 		go p.startWorker()
 	}
 }
 
-func (p *Pool) Stop() {
+func (p *WorkerPool) Stop() {
 	close(p.taskChan)
 }
 
-func (p *Pool) AddTaskAsynk(mapSize int) {
-	t := task{
-		mapSize: mapSize,
-	}
+func (p *WorkerPool) AddTaskAsynk(task *Task) {
+	p.taskChan <- &Task
 }
 
 func (p *Pool) startWorker() {
