@@ -1,6 +1,7 @@
 package main
 
 import (
+	"db_client"
 	"encoding/json"
 	"fmt"
 	"game"
@@ -55,6 +56,8 @@ const (
 func init() {
 	WP := worker_pool.NewPool(poolCap)
 	WP.Run()
+	UserDB := user_db.New()
+	GameDB := game_db.New()
 }
 
 func main() {

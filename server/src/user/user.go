@@ -1,6 +1,7 @@
 package user
 
 import (
+	"database/sql"
 	"fmt"
 	"game"
 	"gmap"
@@ -16,23 +17,30 @@ type User struct {
 }
 
 type GameStarter struct {
-	// user DB to write and the end Games DB
-	User    User
-	MapSize int
-	writer  http.ResponceWriter
+	DataBase db_client.DBClient
+	User     User
+	MapSize  int
+	writer   http.ResponceWriter
 }
 
 func (gs *GameStarter) Handle() error {
-	gameId = math.rand(100) // Здесь фактически будет insert в базу которая сама отдаст тновй уникальный id
-	game, err := game.MakeAGame(gs.MapSize, gameID)
+	game, err := game.MakeAGame(gs.MapSizei, &gs.DataBase)
 	if err != nil {
-		return fmt.Errorf("")
+		return fmt.Errorf("GameStarter: failed to make a game: %s", err)
 	}
-	gs.User.Games = append(gs.User.Games, gameId)
-	// put into user DB gameid
-	// put into game db
-	// put into memcache
-	return
+	gs.User.Games = append(gs.User.Games, game.Id)
+	_, err = gs.DataBase.Query("UPDATE user SET games array_append(games,?) WHERE id=?", game.Id, User.Id)
+	if err != nil {
+		return fmt.Errorf("GameStarter: failed to update userDB: %s", err)
+	}
+	return nil
+}
+
+func (gs *GameStarter) Finish(err error) {
+	if err != nil {
+		fmt.Fprintf(gs.writer, "GameStarter failed: %s", err)
+	}
+	// Здесь будем отдавать пользоавтелю game id в стандартной структуре ответа{code: 200, body: {game_id: 23 } }, когда вынесем ёё из main
 }
 
 func (u *User) CheckActiveGame() (bool, error) {

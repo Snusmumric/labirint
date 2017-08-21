@@ -4,8 +4,14 @@ import (
 	"../cell"
 )
 
+type mapParams struct {
+	xSize int
+	ySize int
+}
+
 type Gmap struct {
-	Field [][]cell.Cell
+	Params mapParams
+	Field  [][]cell.Cell
 }
 
 func MakeAMap(size int) *Gmap {
@@ -18,5 +24,26 @@ func MakeAMap(size int) *Gmap {
 		}
 		cellarray = append(cellarray, cellrow)
 	}
-	return &Gmap{cellarray}
+	return &Gmap{
+		Params: mapParams{xSize: size, ySize: size},
+		Field:  cellarray,
+	}
+}
+
+func (m *Gmap) InsertString() string {
+	str := "ARRAY["
+	for i, row := range m.Field {
+		str += "["
+		for j, v := range row {
+			str += "'" + fmt.Sprintf("%d:%d", v.Kind, v.Hidden) . "o'" 	
+			if j < m.Params.xSize - 1 {
+				str += ','
+			}
+		}
+		str += ']'
+		if i < m.Params.ySize - 1 {
+			str += ','
+		}
+	}
+	str += ']'
 }
