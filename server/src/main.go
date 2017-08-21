@@ -19,20 +19,23 @@ type globalScorebase map[int]int      // [user_id] score (global score!? == sum 
 type globalGameBase map[int]game.Game //[game_id]game
 
 const (
-	html_dir = "server/html/"
-	anError  = `<p class="error"i>%s</p>`
+	html_dir      = "server/html/"
+	anError       = `<p class="error"i>%s</p>`
+	commonMapSize = 5
 )
 
-type apiError struct {
-	Error error `json: error`
-	Code  int   `json: code`
+type apiResp struct {
+	Error error    `json: error`
+	Code  int      `json: code`
+	Body  struct{} `json: body`
 }
 
-func ReportError(writer http.ResponseWriter, code int, err error) {
+func SendResp(writer http.ResponseWriter, code int, err error, body struct{}) {
 	fmt.Fprintf(writer, json.Marshall(
-		apiError{
+		apiResp{
 			Error: err,
 			Code:  code,
+			Body:  body,
 		},
 	),
 	)
@@ -43,6 +46,15 @@ func ReportError(writer http.ResponseWriter, code int, err error) {
 const InvalidRequest appError = appError{
 	Error: fmt.Errorf("invalid json request"),
 	Code:  400,
+}
+
+const (
+	poolCap = 10
+)
+
+func init() {
+	WP := worker_pool.NewPool(poolCap)
+	WP.Run()
 }
 
 func main() {
@@ -86,15 +98,32 @@ func startAction(writer http.ResponseWriter, req *http.Request) {
 	id, err := strconv.Atoi(str)
 
 	if err != nil {
-		ReportError(writer, 400, err)
+		SendResp(writer, 400, err)
 		return
 	}
 
 	user, err := GetUser(id)
 
 	if err != nil {
-		ReportError(writer, 400, fmt.Errorf("Get User Error: %s", err))
+		SendResp(writer, 400, fmt.Errorf("Get User Error: %s", err), struct{})
 		return
 	}
 
+	notSavedGame, err := pUser.CheckActiveGame()
+	if err != nil {
+		SendResp(writer, 400, fmt.Errorf("CheckActiveGames error: %s", err), struct{})
+		return
+	}
+
+	if notSavedGame {
+		SendResp(writer, 400, fmt.Errorf("not_saved_game"), struct{})
+		return
+	}
+
+	gs := user.GameStarter{}
+	err = WR.AddAsynkTask(&gs)
+
+	if err != nil {
+		SendResp(writer, 400, fmt.Errrorf("timeout"), struct{})
+	}
 }

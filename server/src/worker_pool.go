@@ -1,12 +1,13 @@
 package worker_pool
 
-type taskArgs []interface{}
+import (
+	"fmt"
+	"time"
+)
 
-type handler func(...interface{})
-
-type Task struct {
-	taskArgs taskArgs
-	handler  interface{}
+type Task interface {
+	Handle() error
+	Finish(error)
 }
 
 type WorkerPool struct {
@@ -14,10 +15,10 @@ type WorkerPool struct {
 	taskChan chan *Task
 }
 
-func NewPool(capacity int, chanSize int) {
+func NewPool(capacity int) {
 	return &WorkerPool{
 		capacity: capacity,
-		taskChan: make(chan *Task, chanSize),
+		taskChan: make(chan *Task),
 	}
 }
 
@@ -31,12 +32,20 @@ func (p *WorkerPool) Stop() {
 	close(p.taskChan)
 }
 
-func (p *WorkerPool) AddTaskAsynk(task *Task) {
-	p.taskChan <- &Task
+func (p *WorkerPool) AddTaskAsynk(task *Task, timeout time.Millisecond) error {
+	tick := time.Tick(timeout * time.Millisecond)
+	select {
+	case p.taskChan <- &Task:
+		return nil
+	case <-tick:
+		return fmt.Errorf("Task not sended, timeout")
+	}
+
 }
 
 func (p *Pool) startWorker() {
 	for t := range p.taskChan {
-		t.handler(t.taskArgs)
+		err := t.Handle()
+		t.Finish(err)
 	}
 }
