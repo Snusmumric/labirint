@@ -17,6 +17,13 @@ func (t myTask) Handle() error {
 	return nil
 }
 
+func (t myTask) Finish(err error)  {
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+}
+
 	var done = make(chan struct{})
 
 func main() {
