@@ -7,7 +7,7 @@ import (
 
 type Task interface {
 	Handle() error
-	//Finish(error)
+	Finish(error)
 }
 
 type WorkerPool struct {
@@ -50,7 +50,7 @@ func (p *WorkerPool) AddTaskAsynk(task Task, timeout time.Duration) error {
 
 func (p *WorkerPool) startWorker() {
 	for t := range p.taskChan {
-		_ = t.Handle()
-		//t.Finish(err)
+		err = t.Handle()
+		t.Finish(err)
 	}
 }
