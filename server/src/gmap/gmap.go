@@ -1,7 +1,8 @@
 package gmap
 
 import (
-	"../cell"
+	"cell"
+	"fmt"
 )
 
 type mapParams struct {
@@ -35,15 +36,16 @@ func (m *Gmap) InsertString() string {
 	for i, row := range m.Field {
 		str += "["
 		for j, v := range row {
-			str += "'" + fmt.Sprintf("%d:%d", v.Kind, v.Hidden) . "o'" 	
-			if j < m.Params.xSize - 1 {
-				str += ','
+			str += "'" + fmt.Sprintf("%d:%d", v.Kind, v.Hidden)
+			if j < m.Params.xSize-1 {
+				str += ","
 			}
 		}
-		str += ']'
-		if i < m.Params.ySize - 1 {
-			str += ','
+		str += "]"
+		if i < m.Params.ySize-1 {
+			str += ","
 		}
 	}
-	str += ']'
+	str += "]"
+	return str
 }

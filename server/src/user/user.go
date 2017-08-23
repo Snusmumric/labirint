@@ -1,12 +1,9 @@
 package user
 
 import (
-	"database/sql"
 	"db_client"
 	"fmt"
 	"game"
-	"gmap"
-	"math"
 	"net/http"
 	"reporter"
 )
@@ -19,20 +16,20 @@ type User struct {
 }
 
 type GameStarter struct {
-	DataBase db_client.DBClient
-	User     User
+	DataBase *db_client.DBClient
+	User     *User
 	MapSize  int
-	Writer   http.ResponceWriter
+	Writer   http.ResponseWriter
 	gameId   int
 }
 
 func (gs *GameStarter) Handle() error {
-	game, err := game.MakeAGame(gs.MapSizei, &gs.DataBase)
+	game, err := game.MakeAGame(gs.MapSize, gs.DataBase)
 	if err != nil {
 		return fmt.Errorf("GameStarter: failed to make a game: %s", err)
 	}
 	gs.User.Games = append(gs.User.Games, game.Id)
-	_, err = gs.DataBase.db.Query("UPDATE users SET games array_append(games,?) WHERE id=?", game.Id, User.Id)
+	_, err = gs.DataBase.DB.Query("UPDATE users SET games array_append(games,?) WHERE id=?", game.Id, gs.User.Id)
 	if err != nil {
 		return fmt.Errorf("GameStarter: failed to update userDB: %s", err)
 	}
@@ -44,35 +41,49 @@ func (gs *GameStarter) Finish(err error) {
 	if err != nil {
 		fmt.Fprintf(gs.Writer, "GameStarter failed: %s", err)
 	}
-	reporter.SendResp(gs.Writer, 200, "", struct {
-		game_id int
-	}{game.Id})
+	reporter.SendResp(gs.Writer, 200, nil, struct {
+		gameId int `json: game_id`
+	}{gs.gameId})
 
 }
 
-func (u *User) CheckActiveGame(dbc *DBClient) error {
+func (u *User) CheckActiveGame(dbc *db_client.DBClient) (bool, error) {
 	var count int
-	var games []int
-	rows, err := dbc.db.Query("SELECT status FROM games g INNER JOIN users u ON g.id = ANY(u.games) WHERE u.id=?", u.Id)
+	rows, err := dbc.DB.Query("SELECT status FROM games g INNER JOIN users u ON g.id = ANY(u.games) WHERE u.id=?", u.Id)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer rows.Close()
-	err = rows.Scan(&games)
-	if err != nil {
-		return err
-	}
-	for _, game := range games {
-		if game.Status == 1 {
+	for rows.Next() {
+		var status int
+		err = rows.Scan(&status)
+		if err != nil {
+			return false, err
+		}
+		if status == 1 {
 			count += 1
 		}
 	}
 	if count > 1 {
-		return 0, fmt.Errorf("Impossible situation: active games number: %d", count)
+		return false, fmt.Errorf("Impossible situation: active games number: %d", count)
 	}
 	if count == 1 {
 		return true, nil
 	} else {
 		return false, nil
 	}
+}
+
+func GetUserById(dbc *db_client.DBClient, id int) (*User, error) {
+	row, err := dbc.DB.Query("SELECT * FROM users WHERE id=?", id)
+	defer row.Close()
+	if err != nil {
+		return nil, err
+	}
+	var user User
+	err = row.Scan(&user.Id, &user.Name, &user.Games)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

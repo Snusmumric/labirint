@@ -1,31 +1,34 @@
 package game
 
 import (
-	"../gmap"
-	"../playchar"
 	"db_client"
+	"fmt"
+	"gmap"
+	"playchar"
 )
 
 type Game struct {
 	Id         int `json:"game-id,omitempty"`
-	Map_master gmap.Gmap
-	Gg         playchar.Playchar
+	Map_master *gmap.Gmap
+	Gg         *playchar.Playchar
 	Status     int // -1(over), 0(saved), 1(online)
 	SavedName  string
 }
 
-func MakeAGame(mapSize int, dbc *db_client.DBCient) (*Game, error) {
+func MakeAGame(mapSize int, dbc *db_client.DBClient) (*Game, error) {
 	//globalGameNum++
 	newmap := gmap.MakeAMap(mapSize)
 	var id int
-	err := dbc.db.Query("INSERT INTO games (status map) VALUES (? ?) RETURNING id", "online", newmap.InsertString()).Scan(&id)
+	res, err := dbc.DB.Query("INSERT INTO games (status map) VALUES (? ?) RETURNING id", "online", newmap.InsertString())
+	defer res.Close()
 	if err != nil {
 		return nil, fmt.Errorf("MakeAGame: failed to insert into games %s", err)
 	}
+	err = res.Scan(&id)
 
-	newCharacter := playchar{100, 0, 0}
+	newCharacter := playchar.New(100, 0, 0)
 
-	newgame := Game{id, *newmap, newCharacter, 1}
+	newgame := Game{id, newmap, newCharacter, 1, ""}
 
 	return &newgame, nil
 }

@@ -3,50 +3,50 @@ package db_client
 import (
 	"database/sql"
 	"fmt"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 const (
 	host     = "localhost"
 	port     = 5432
-	user     = "labirint"
-	password = "StrongPassword1"
+	password = "pswd"
+	user     = "labirint1"
 	dbname   = "labirintDB"
 )
 
 type DBClient struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
-func (udb *DBClient) init() {
-	PsqlInfo := fmt.Printf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+func (dbc *DBClient) init() {
+	PsqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 	database, err := sql.Open("postgres", PsqlInfo)
 	if err != nil {
 		panic(err)
 	}
-	_, err := database.Exec("CREATE TABLE IF NOT EXISTS games (" +
+	_, err = database.Exec("CREATE TABLE IF NOT EXISTS games (" +
 		"id SERIAL PRIMARY KEY, " +
 		"map text[][] " +
-		"status text" +
+		"status int" +
 		"saved_name text")
 	if err != nil {
 		panic(err)
 	}
-	_, err := database.Exec("CREATE TABLE IF NOT EXISTS users (" +
+	_, err = database.Exec("CREATE TABLE IF NOT EXISTS users (" +
 		"id SERIAL PRIMARY KEY, " +
 		"name TEXT, " +
-		"games integer[])")
+		"games int[])")
 	if err != nil {
 		panic(err)
 	}
 
-	gdb.db = database
+	dbc.DB = database
 	return
 }
 
-func New() *GameDBClient {
-	gdb = GameDBClient
-	gdb.Init()
-	return gdb
+func New() *DBClient {
+	dbc := &DBClient{}
+	dbc.init()
+	return dbc
 
 }

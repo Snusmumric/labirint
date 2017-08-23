@@ -1,28 +1,28 @@
 package reporter
 
 import (
-	"enconding/json"
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
 
 type apiResp struct {
-	Error error    `json: error`
-	Code  int      `json: code`
-	Body  struct{} `json: body`
+	Error error       `json: error`
+	Code  int         `json: code`
+	Body  interface{} `json: body`
 }
 
-func SendResp(writer http.ResponseWriter, code int, err error, body struct{}) {
-	fmt.Fprintf(writer, json.Marshall(
+func SendResp(writer http.ResponseWriter, code int, err error, body interface{}) {
+	resp, _ := json.Marshal(
 		apiResp{
 			Error: err,
 			Code:  code,
 			Body:  body,
 		},
-	),
 	)
+	fmt.Fprintf(writer, string(resp))
 	return
 
 }
 
-const InvalidRequest = fmt.Errorf("invalid json request")
+const EmptyBody = ""
