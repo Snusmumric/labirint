@@ -14,11 +14,11 @@ type Game struct {
 	SavedName  string
 }
 
-func MakeAGame(mapSize int, db *db_client.DBCient) (*Game, error) {
+func MakeAGame(mapSize int, dbc *db_client.DBCient) (*Game, error) {
 	//globalGameNum++
 	newmap := gmap.MakeAMap(mapSize)
 	var id int
-	err := db.Query("INSERT INTO games (status map) VALUES (? ?) RETURNING id", "online", newmap.InsertString()).Scan(&id)
+	err := dbc.db.Query("INSERT INTO games (status map) VALUES (? ?) RETURNING id", "online", newmap.InsertString()).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("MakeAGame: failed to insert into games %s", err)
 	}

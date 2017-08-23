@@ -8,6 +8,7 @@ import (
 	"gmap"
 	"log"
 	"net/http"
+	"reporter"
 	"user"
 	"worker_pool"
 	//"strings"
@@ -25,39 +26,10 @@ const (
 	commonMapSize = 5
 )
 
-type apiResp struct {
-	Error error    `json: error`
-	Code  int      `json: code`
-	Body  struct{} `json: body`
-}
-
-func SendResp(writer http.ResponseWriter, code int, err error, body struct{}) {
-	fmt.Fprintf(writer, json.Marshall(
-		apiResp{
-			Error: err,
-			Code:  code,
-			Body:  body,
-		},
-	),
-	)
-	return
-
-}
-
-const InvalidRequest appError = appError{
-	Error: fmt.Errorf("invalid json request"),
-	Code:  400,
-}
-
-const (
-	poolCap = 10
-)
-
 func init() {
 	WP := worker_pool.NewPool(poolCap)
 	WP.Run()
-	UserDB := user_db.New()
-	GameDB := game_db.New()
+	LabDB := db_client.New()
 }
 
 func main() {
@@ -93,7 +65,7 @@ func startAction(writer http.ResponseWriter, req *http.Request) {
 	err := request.ParseForm()
 
 	if err != nil {
-		fmt.Fprintf(writer, json.Marshal(InvalidRequest))
+		reporter.SendResp(writer, 400, reporter.InvalidRequest)
 		return
 	}
 
@@ -101,32 +73,37 @@ func startAction(writer http.ResponseWriter, req *http.Request) {
 	id, err := strconv.Atoi(str)
 
 	if err != nil {
-		SendResp(writer, 400, err)
+		reporter.SendResp(writer, 400, err)
 		return
 	}
 
 	user, err := GetUser(id)
 
 	if err != nil {
-		SendResp(writer, 400, fmt.Errorf("Get User Error: %s", err), struct{})
+		reporter.SendResp(writer, 400, fmt.Errorf("Get User Error: %s", err), struct{})
 		return
 	}
 
-	notSavedGame, err := pUser.CheckActiveGame()
+	notSavedGame, err := user.CheckActiveGame()
 	if err != nil {
-		SendResp(writer, 400, fmt.Errorf("CheckActiveGames error: %s", err), struct{})
+		reporter.SendResp(writer, 400, fmt.Errorf("CheckActiveGames error: %s", err), struct{})
 		return
 	}
 
 	if notSavedGame {
-		SendResp(writer, 400, fmt.Errorf("not_saved_game"), struct{})
+		reporter.SendResp(writer, 400, fmt.Errorf("not_saved_game"), struct{})
 		return
 	}
 
-	gs := user.GameStarter{}
+	gs := user.GameStarter{
+		DataBase: LabDB,
+		User:     user,
+		MapSize:  commonMapSize,
+		Writer:   writer,
+	}
 	err = WR.AddAsynkTask(&gs)
 
 	if err != nil {
-		SendResp(writer, 400, fmt.Errrorf("timeout"), struct{})
+		reporter.SendResp(writer, 400, fmt.Errrorf("timeout"), struct{})
 	}
 }
