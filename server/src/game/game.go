@@ -19,7 +19,8 @@ func MakeAGame(mapSize int, dbc *db_client.DBClient) (*Game, error) {
 	//globalGameNum++
 	newmap := gmap.MakeAMap(mapSize)
 	var id int
-	res, err := dbc.DB.Query("INSERT INTO games (status map) VALUES (? ?) RETURNING id", "online", newmap.InsertString())
+	strtoexec:=fmt.Sprintf("INSERT INTO games (status,map) VALUES (%s,%s) RETURNING id", "'online'", newmap.InsertString())
+	res, err := dbc.DB.Query(strtoexec)
 	defer res.Close()
 	if err != nil {
 		return nil, fmt.Errorf("MakeAGame: failed to insert into games %s", err)
