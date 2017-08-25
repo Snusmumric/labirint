@@ -11,9 +11,8 @@ import (
 
 const (
 	html_dir = "server/html/"
-	anError    = `<p class="error">%s</p>`
+	anError  = `<p class="error">%s</p>`
 )
-
 
 type userbase map[string]user.User    // int - id of players
 type globalScorebase map[int]int      // [user_id] score (global score!? == sum of scores from all games?)           !!!!!!!!
@@ -21,7 +20,7 @@ type globalGameBase map[int]game.Game //[game_id]game
 
 //=============global=========================
 //-----------data bases-----------------------
-var userDataBase userbase
+//var userDataBase userbase
 var userScoreDataBase globalScorebase
 var globGameBase globalGameBase
 
@@ -49,7 +48,7 @@ func main() {
 
 func homePage(writer http.ResponseWriter, request *http.Request) {
 	err := request.ParseForm() // Must be called before writing response
-	main_page_template, err := ioutil.ReadFile(html_dir+"home_page.html")
+	main_page_template, err := ioutil.ReadFile(html_dir + "home_page.html")
 	fmt.Fprint(writer, string(main_page_template))
 	if err != nil {
 		fmt.Fprintf(writer, anError, err)
@@ -140,8 +139,6 @@ func login(res http.ResponseWriter, req *http.Request) {
 		fmt.Printf("%s\n", respdata)
 	}
 
-
-
 }
 
 func moveAction(res http.ResponseWriter, req *http.Request) { // error
@@ -203,17 +200,16 @@ func showStatus(res http.ResponseWriter, req *http.Request) {
 	}
 
 	/*
-	PlayerStr := req.URL.Query().Get("PlayerId")
-	PlayerId, err := strconv.Atoi(PlayerStr)
-	if err != nil {
-		fmt.Fprintf(res, "Error with PlayerId input occupyed\n")
-		//return fmt.Errorf("Error with PlayerId input occupyed\n")
-		fmt.Fprintf(res, "Error with id input occupyed\n")
-		return
-	}
+		PlayerStr := req.URL.Query().Get("PlayerId")
+		PlayerId, err := strconv.Atoi(PlayerStr)
+		if err != nil {
+			fmt.Fprintf(res, "Error with PlayerId input occupyed\n")
+			//return fmt.Errorf("Error with PlayerId input occupyed\n")
+			fmt.Fprintf(res, "Error with id input occupyed\n")
+			return
+		}
 	*/
 	PlayerName := req.URL.Query().Get("PlayerName")
-
 
 	GameStr := req.URL.Query().Get("GameId")
 	GameId, err := strconv.Atoi(GameStr)
