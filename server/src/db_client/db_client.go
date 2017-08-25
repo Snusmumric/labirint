@@ -97,12 +97,12 @@ func (dbc *DBClient) RegistrateNewUser(name string, pass string) (int, error) {
 	//globalGameNum++
 	var id int
 	strtoexec := fmt.Sprintf("INSERT INTO users(name,pass,games) VALUES ('%s','%s',array[]::integer[]) RETURNING id", name, pass)
-	fmt.Println(strtoexec)
 	res, err := dbc.DB.Query(strtoexec)
 	defer res.Close()
 	if err != nil {
 		return 0, fmt.Errorf("NewUser: failed to insert into users %s", err)
 	}
+	res.Next()
 	err = res.Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("NewUser: failed to get id from users %s", err)
