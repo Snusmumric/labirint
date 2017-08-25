@@ -20,11 +20,11 @@ type DBClient struct {
 }
 
 // +
-func (dbc *DBClient)UserIdExists(user_id int) (bool, error) {
+func (dbc *DBClient) UserIdExists(user_id int) (bool, error) {
 
 	found := false
 
-	rows, err := dbc.DB.Query("select exists(select * from users where id=$1)",user_id)
+	rows, err := dbc.DB.Query("select exists(select * from users where id=$1)", user_id)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,10 +44,10 @@ func (dbc *DBClient)UserIdExists(user_id int) (bool, error) {
 }
 
 // +
-func (dbc *DBClient)UserNameExists(nameToFound string) (bool, error) {
+func (dbc *DBClient) UserNameExists(nameToFound string) (bool, error) {
 
 	found := false
-	strToExec := fmt.Sprintf("select exists(select * from users where name='%s')",nameToFound)
+	strToExec := fmt.Sprintf("select exists(select * from users where name='%s')", nameToFound)
 	rows, err := dbc.DB.Query(strToExec)
 	if err != nil {
 		log.Fatal(err)
@@ -67,10 +67,11 @@ func (dbc *DBClient)UserNameExists(nameToFound string) (bool, error) {
 	return found, nil
 }
 
-func (dbc *DBClient)UserPassCorrect(name string, pass string) (bool, error) {
+// +
+func (dbc *DBClient) UserPassCorrect(name string, pass string) (bool, error) {
 
 	found := false
-	strToExect := fmt.Sprintf("select exists(select * from users where name='%s' and pass='%s')", name,pass)
+	strToExect := fmt.Sprintf("select exists(select * from users where name='%s' and pass='%s')", name, pass)
 	rows, err := dbc.DB.Query(strToExect)
 	if err != nil {
 		log.Fatal(err)
@@ -90,11 +91,35 @@ func (dbc *DBClient)UserPassCorrect(name string, pass string) (bool, error) {
 	return found, nil
 }
 
-func (dbc *DBClient)GameExists(game_id int) (bool, error) {
+func (dbc *DBClient) RegistrateNewUser(name string, pass string) (int, error) {
+	//newUser := user.User{}
+
+	//globalGameNum++
+	var id int
+	strtoexec := fmt.Sprintf("INSERT INTO users(name,pass,games) VALUES ('%s','%s',array[]::integer[]) RETURNING id", name, pass)
+	fmt.Println(strtoexec)
+	res, err := dbc.DB.Query(strtoexec)
+	defer res.Close()
+	if err != nil {
+		return 0, fmt.Errorf("NewUser: failed to insert into users %s", err)
+	}
+	err = res.Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("NewUser: failed to get id from users %s", err)
+	}
+
+	//newUser.Id=id
+	//newUser.Name=name
+
+	return id, nil
+
+}
+
+func (dbc *DBClient) GameExists(game_id int) (bool, error) {
 
 	found := false
 
-	rows, err := dbc.DB.Query("select exists(select * from games where id=$1)",game_id)
+	rows, err := dbc.DB.Query("select exists(select * from games where id=$1)", game_id)
 	if err != nil {
 		log.Fatal(err)
 	}
