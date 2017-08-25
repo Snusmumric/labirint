@@ -92,8 +92,8 @@ func GetUserById(dbc *db_client.DBClient, id int) (*User, error) {
 	str = str[1:len(str)-1]
 	NumList := strings.Split(str, ",")
 	for _, s := range NumList {
-		j,_ := strconv.Atoi(s)
-		user.Games = append(user.Games,j)
+		j, _ := strconv.Atoi(s)
+		user.Games = append(user.Games, j)
 	}
 
 	if err != nil {
@@ -102,7 +102,29 @@ func GetUserById(dbc *db_client.DBClient, id int) (*User, error) {
 	return &user, nil
 }
 
-func (us *User)UserHaveTheGameWithId(gameId int) (bool, error) {
+func GetIdByUserName(name string, dbc *db_client.DBClient) (int, error) {
+
+	strToExec := fmt.Sprintf("SELECT id FROM users WHERE name='%s'", name)
+	row, err := dbc.DB.Query(strToExec)
+	fmt.Println(err)
+	if err != nil {
+		return 0, err
+	}
+	defer row.Close()
+
+	row.Next()
+	var id int
+	err = row.Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+
+func (us *User) UserHaveTheGameWithId(gameId int) (bool, error) {
 	exists := false
 
 	for _, g := range us.Games {
