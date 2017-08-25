@@ -5,28 +5,37 @@ import (
 	"fmt"
 )
 
-type mapParams struct {
-	xSize int
-	ySize int
+type MapParams struct {
+	Xsize int
+	Ysize int
 }
 
 type Gmap struct {
-	Params mapParams
-	Field  [][]cell.Cell
+	Params MapParams
+	Field  [][]Cell.Cell
 }
 
 func MakeAMap(size int) *Gmap {
-	cellarray := [][]cell.Cell{}
+	cellarray := [][]Cell.Cell{}
 	for j := 0; j < size; j++ {
-		cellrow := []cell.Cell{}
+		cellrow := []Cell.Cell{}
 		for i := 0; i < size; i++ {
-			celltoadd := cell.Cell{1, 1}
+			celltoadd := Cell.Cell{1, 1}
 			cellrow = append(cellrow, celltoadd)
 		}
 		cellarray = append(cellarray, cellrow)
 	}
 	return &Gmap{
-		Params: mapParams{xSize: size, ySize: size},
+		Params: MapParams{Xsize: size, Ysize: size},
+		Field:  cellarray,
+	}
+}
+
+func MakeZeroMap(size int) *Gmap {
+	cellarray := [][]Cell.Cell{}
+
+	return &Gmap{
+		Params: MapParams{Xsize: size, Ysize: size},
 		Field:  cellarray,
 	}
 }
@@ -37,12 +46,12 @@ func (m *Gmap) InsertString() string {
 		str += "["
 		for j, v := range row {
 			str += "'" + fmt.Sprintf("%d:%d", v.Kind, v.Hidden)
-			if j < m.Params.xSize-1 {
+			if j < m.Params.Xsize-1 {
 				str += "',"
 			}
 		}
 		str += "']"
-		if i < m.Params.ySize-1 {
+		if i < m.Params.Ysize-1 {
 			str += ","
 		}
 	}
@@ -50,3 +59,5 @@ func (m *Gmap) InsertString() string {
 	//fmt.Println(str)
 	return str
 }
+
+
