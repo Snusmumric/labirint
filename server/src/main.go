@@ -13,6 +13,7 @@ import (
 
 	_"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"log"
 )
 
 type userbase map[int]user.User       // int - id of players
@@ -38,15 +39,17 @@ func init() {
 
 func main() {
 
-	/*	http.HandleFunc("/", homePage)
-		http.HandleFunc("/move", moveAction)
+		http.HandleFunc("/", homePage)
 		http.HandleFunc("/start", startAction)
+
 		http.HandleFunc("/login", loginAction)
-		//http.HandleFunc("/save", saveAction)
-		//http.HandleFunc("/end", endAction)
+		http.HandleFunc("/register", registerAction)
+		http.HandleFunc("/move", moveAction)
+
+
 		if err := http.ListenAndServe(":9001", nil); err != nil {
 			log.Fatal("failed to start server", err)
-		}*/
+		}
 
 	//game3, err := game.GetTheGame(3,commonMapSize,LabDB) //+
 	//game3.Map_master.Field[0][0].Kind = 0 //+
@@ -61,9 +64,11 @@ func main() {
 	//correct, _ := LabDB.UserPassCorrect("Dima", "123")
 	//UserId, err := user.GetIdByUserName("Dim", LabDB)
 
-	id, err := LabDB.RegistrateNewUser("Kira", "234")
-	fmt.Println(err)
-	fmt.Println(id)
+	//game3, _ := game.MakeAGame(5, "game1", LabDB)
+	//fmt.Println(game3.Id)
+	//id, err := LabDB.RegistrateNewUser("Kira", "234")
+	//fmt.Println(err)
+	//fmt.Println(id)
 
 }
 
@@ -287,7 +292,7 @@ func loginAction(writer http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(writer, "%d", UserId)
 }
 
-func register(writer http.ResponseWriter, request *http.Request) {
+func registerAction(writer http.ResponseWriter, request *http.Request) {
 	/*
 	input: name, password
 	output: id!=0 / 0 if error (already exists, smth weird)
@@ -323,9 +328,9 @@ func register(writer http.ResponseWriter, request *http.Request) {
 	// registration!
 
 	// return id of just registrated person
-	UserId, err := user.GetIdByUserName(name, LabDB)
+	UserId, err := LabDB.RegistrateNewUser(name,pass )
 	if err != nil {
-		reporter.SendResp(writer, 400, fmt.Errorf("Some problem in login logic!\nTell the admin!"), reporter.EmptyBody)
+		reporter.SendResp(writer, 400, fmt.Errorf("Some problem in register logic!\nTell the admin!"), reporter.EmptyBody)
 		return
 	}
 
