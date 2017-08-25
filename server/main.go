@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"game"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"reporter"
 	"strconv"
-	"worker_pool"
 	"user"
+	"worker_pool"
 
-	_"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
@@ -37,7 +38,7 @@ func init() {
 }
 
 func main() {
-	/*
+
 	http.HandleFunc("/", homePage)
 	http.HandleFunc("/move", moveAction)
 	http.HandleFunc("/start", startAction)
@@ -46,7 +47,7 @@ func main() {
 	if err := http.ListenAndServe(":9001", nil); err != nil {
 		log.Fatal("failed to start server", err)
 	}
-	*/
+
 	//game3, err := game.GetTheGame(3,commonMapSize,LabDB) //+
 	//game3.Map_master.Field[0][0].Kind = 0 //+
 	//game3.Map_master.Field[0][1].Kind = 0 //+
@@ -57,8 +58,8 @@ func main() {
 	//_,_ = game.GetTheGame(1,commonMapSize,LabDB)
 	//_, _ = user.GetUserById(LabDB,1)
 
-	correct, _ := LabDB.UserPassCorrect("Dima", "123")
-	fmt.Println(correct)
+	//correct, _ := LabDB.UserPassCorrect("Dima", "123")
+	//fmt.Println(correct)
 
 }
 
@@ -131,7 +132,7 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	//get the game
-	gameToExecute, err := game.GetTheGame(3,commonMapSize,LabDB)
+	gameToExecute, err := game.GetTheGame(3, commonMapSize, LabDB)
 	if err != nil {
 		reporter.SendResp(writer, 400, fmt.Errorf("Game couldn't be loaded from DataBase: %s", err), reporter.EmptyBody)
 		return
@@ -153,30 +154,29 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	//process the event after move
-		// current postion
-	x:=gameToExecute.Gg.Position.Posx
-	y:=gameToExecute.Gg.Position.Posy
-		//get the event and null the room
+	// current postion
+	x := gameToExecute.Gg.Position.Posx
+	y := gameToExecute.Gg.Position.Posy
+	//get the event and null the room
 	eventId := gameToExecute.Map_master.Field[x][y].Kind
-	gameToExecute.Map_master.Field[x][y].Hidden=0
-	gameToExecute.Map_master.Field[x][y].Kind=0
+	gameToExecute.Map_master.Field[x][y].Hidden = 0
+	gameToExecute.Map_master.Field[x][y].Kind = 0
 
 	switch {
-	case eventId>0 :
+	case eventId > 0:
 		gameToExecute.Gg.Healthpoints++
-		fmt.Fprintf(writer,"Smile, you get HP++.")
-	case eventId<0:
+		fmt.Fprintf(writer, "Smile, you get HP++.")
+	case eventId < 0:
 		gameToExecute.Gg.Healthpoints--
 		fmt.Fprintf(writer, "It's a pity, you get injured.")
 	default:
-		fmt.Println( "Nothing interesting here.\n Just a mermaid on the tree  seductively smiling at you...")
+		fmt.Println("Nothing interesting here.\n Just a mermaid on the tree  seductively smiling at you...")
 	}
 
 	//update the game
-	err = game.UpdateTheGame(gameToExecute,LabDB)//+
+	err = game.UpdateTheGame(gameToExecute, LabDB) //+
 	fmt.Println(err)
 }
-
 
 func homePage(writer http.ResponseWriter, request *http.Request) {
 	err := request.ParseForm() // Must be called before writing response
@@ -248,14 +248,14 @@ func login(writer http.ResponseWriter, request *http.Request) {
 
 	// get user-name
 	name := request.URL.Query().Get("name")
-	if name=="" {
+	if name == "" {
 		reporter.SendResp(writer, 400, fmt.Errorf("Name is empty."), reporter.EmptyBody)
 		return
 	}
 
 	// get password
 	pass := request.URL.Query().Get("pass")
-	if pass=="" {
+	if pass == "" {
 		reporter.SendResp(writer, 400, fmt.Errorf("Password is empty."), reporter.EmptyBody)
 		return
 	}
@@ -273,18 +273,15 @@ func login(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-
-
 	fmt.Println(CorectPass)
 
-	fmt.Fprintf(writer, "%d", )
+	fmt.Fprintf(writer, "%d")
 }
 
 func register(res http.ResponseWriter, req *http.Request) {
 	/*
-	input: name, password
-	output: id!=0 / 0 if error (already exists, smth weird)
+		input: name, password
+		output: id!=0 / 0 if error (already exists, smth weird)
 	*/
-
 
 }

@@ -1,7 +1,7 @@
 package gmap
 
 import (
-	"cell"
+	"Cell"
 	"fmt"
 )
 
@@ -59,5 +59,3 @@ func (m *Gmap) InsertString() string {
 	//fmt.Println(str)
 	return str
 }
-
-
