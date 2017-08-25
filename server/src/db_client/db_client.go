@@ -26,9 +26,9 @@ func (dbc *DBClient) init() {
 	}
 	_, err = database.Exec("CREATE TABLE IF NOT EXISTS games (" +
 		"id SERIAL PRIMARY KEY, " +
-		"map text[][] " +
-		"status int" +
-		"saved_name text")
+		"map text[][]," +
+		"status text," +
+		"saved_name text)")
 	if err != nil {
 		panic(err)
 	}
