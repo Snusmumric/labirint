@@ -70,8 +70,8 @@ func (dbc *DBClient)UserNameExists(nameToFound string) (bool, error) {
 func (dbc *DBClient)UserPassCorrect(name string, pass string) (bool, error) {
 
 	found := false
-	strToExect := fmt.Sprintf()
-	rows, err := dbc.DB.Query("select exists(select * from users where name='$1', pass='$2' )",name, pass)
+	strToExect := fmt.Sprintf("select exists(select * from users where name='%s' and pass='%s')", name,pass)
+	rows, err := dbc.DB.Query(strToExect)
 	if err != nil {
 		log.Fatal(err)
 	}
