@@ -38,14 +38,15 @@ func (m *Gmap) InsertString() string {
 		for j, v := range row {
 			str += "'" + fmt.Sprintf("%d:%d", v.Kind, v.Hidden)
 			if j < m.Params.xSize-1 {
-				str += ","
+				str += "',"
 			}
 		}
-		str += "]"
+		str += "']"
 		if i < m.Params.ySize-1 {
 			str += ","
 		}
 	}
 	str += "]"
+	//fmt.Println(str)
 	return str
 }
