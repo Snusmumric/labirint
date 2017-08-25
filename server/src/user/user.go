@@ -6,8 +6,8 @@ import (
 	"game"
 	"net/http"
 	"reporter"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 type User struct {
@@ -78,18 +78,23 @@ func (u *User) CheckActiveGame(dbc *db_client.DBClient) (bool, error) {
 
 func GetUserById(dbc *db_client.DBClient, id int) (*User, error) {
 	row, err := dbc.DB.Query("SELECT * FROM users WHERE id=$1", id)
-	fmt.Println(err)
 	if err != nil {
 		return nil, err
 	}
 	defer row.Close()
 	var user User
-	row.Next()
+	if !row.Next() {
+		return nil, fmt.Errorf("user not exist")
+	}
 
+	fmt.Println(err)
 	var uint8Games []uint8
 	err = row.Scan(&user.Id, &user.Name, &uint8Games)
+	if err != nil {
+		return nil, err
+	}
 	str := fmt.Sprintf("%s", uint8Games)
-	str = str[1:len(str)-1]
+	str = str[1 : len(str)-1]
 	NumList := strings.Split(str, ",")
 	for _, s := range NumList {
 		j, _ := strconv.Atoi(s)
@@ -122,7 +127,6 @@ func GetIdByUserName(name string, dbc *db_client.DBClient) (int, error) {
 
 	return id, nil
 }
-
 
 func (us *User) UserHaveTheGameWithId(gameId int) (bool, error) {
 	exists := false

@@ -7,7 +7,7 @@ import (
 )
 
 type apiResp struct {
-	Error error       `json: error`
+	Error string      `json: error`
 	Code  int         `json: code`
 	Body  interface{} `json: body`
 }
@@ -15,7 +15,7 @@ type apiResp struct {
 func SendResp(writer http.ResponseWriter, code int, err error, body interface{}) {
 	resp, _ := json.Marshal(
 		apiResp{
-			Error: err,
+			Error: err.Error(),
 			Code:  code,
 			Body:  body,
 		},

@@ -42,7 +42,7 @@ func main() {
 	http.HandleFunc("/", homePage)
 	http.HandleFunc("/move", moveAction)
 	http.HandleFunc("/start", startAction)
-	//http.HandleFunc("/save", saveAction)
+	//http.HandleFunc("/login", login)
 	//http.HandleFunc("/end", endAction)
 	if err := http.ListenAndServe(":9001", nil); err != nil {
 		log.Fatal("failed to start server", err)
@@ -232,6 +232,7 @@ func startAction(writer http.ResponseWriter, request *http.Request) {
 
 	if err != nil {
 		reporter.SendResp(writer, 400, fmt.Errorf("timeout"), reporter.EmptyBody)
+		return
 	}
 }
 
