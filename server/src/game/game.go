@@ -32,7 +32,7 @@ func MakeZeroGame(mapSize int) (*Game, error) {
 func MakeAGame(mapSize int, gameName string, eventNum int, dbc *db_client.DBClient) (*Game, error) {
 	//globalGameNum++
 	newmap := gmap.MakeAMap(mapSize)
-	newmap.MapEventRandomizator(eventNum)
+	newmap.MapEventRandomizator(eventNum, mapSize)
 	newCharacter := playchar.New(100, 0, 0)
 	var id int
 	strtoexec:=fmt.Sprintf("INSERT INTO games (status,map,saved_name,playchar) VALUES (%d,%s,'%s',%s) RETURNING id", 1, newmap.InsertString(), gameName, newCharacter.ToString())
