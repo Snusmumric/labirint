@@ -1,15 +1,14 @@
 package game
 
 import (
-	"Cell"
 	"db_client"
 	"fmt"
 	"gmap"
-	"math/rand"
 	"playchar"
 	"strconv"
 	"strings"
 	"time"
+	"math/rand"
 )
 
 type Game struct {
@@ -52,7 +51,6 @@ func MakeAGame(mapSize int, gameName string, eventNum int, dbc *db_client.DBClie
 func UpdateTheGame(GameToUpdate *Game, dbc *db_client.DBClient) error {
 
 	strtoexec := fmt.Sprintf("update games set map=%s, playchar=%s, status=%d, saved_name='%s'  where id=%d", GameToUpdate.Map_master.InsertString(), GameToUpdate.Gg.ToString(), GameToUpdate.Status, GameToUpdate.SavedName, GameToUpdate.Id)
-	fmt.Println(strtoexec)
 	res, err := dbc.DB.Query(strtoexec)
 	defer res.Close()
 	if err != nil {
@@ -102,9 +100,12 @@ func GetTheGame(gameId int, mapSize int, dbc *db_client.DBClient) (*Game, error)
 	strbuf = strings.Replace(strbuf, "{", "", -1)
 	strbuf = strings.Replace(strbuf, "}", "", -1)
 	strList := strings.Split(strbuf, ",")
-	cellrow := []Cell.Cell{}
-	cell := Cell.Cell{}
+	loadgame.Map_master = gmap.MakeAMap(mapSize)
+
+	//cellrow := []Cell.Cell{}
+	//cell := Cell.Cell{}
 	iter := 0
+	i := 0
 	for _, s := range strList {
 		strKSL := strings.Split(s, ":") // kind and status
 		strKSLi := []int{}
@@ -112,14 +113,12 @@ func GetTheGame(gameId int, mapSize int, dbc *db_client.DBClient) (*Game, error)
 			ks, _ := strconv.Atoi(sksl)
 			strKSLi = append(strKSLi, ks)
 		}
-		cell.Kind = strKSLi[0]
-		cell.Hidden = strKSLi[1]
-		iter++
-		cellrow = append(cellrow, cell)
-		if iter == mapSize {
-			loadgame.Map_master.Field = append(loadgame.Map_master.Field, cellrow)
-			iter = 0
-			cellrow = cellrow[:0]
+		loadgame.Map_master.Field[iter][i].Kind = strKSLi[0]
+		loadgame.Map_master.Field[iter][i].Hidden = strKSLi[1]
+		i++
+		if i == mapSize {
+			iter++
+			i=0
 		}
 	}
 
@@ -139,14 +138,19 @@ func GetTheGame(gameId int, mapSize int, dbc *db_client.DBClient) (*Game, error)
 	return loadgame, nil
 }
 
-func (game Game) MapEventRandomizator(eventsNum int) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	field := game.Map_master.Field
-	for _, row := range field {
-		for _, cel := range row {
-			if cel.Kind != 0 {
-				cel.Kind = r.Perm(eventsNum)[0] + 1
+func (game Game) MapEventRandomizator(eventsNum int, mapSize int) {
+	rand.Seed(time.Now().UTC().UnixNano())
+	for i, row := range game.Map_master.Field {
+		for j, _ := range row {
+			if game.Map_master.Field[i][j].Kind != 0 {
+				//cel.Kind = r.Perm(eventsNum)[0] + 1
+				randn := 1 + randInt(0, eventsNum)
+				game.Map_master.Field[i][j].Kind = randn
 			}
 		}
 	}
+}
+
+func randInt(min int, max int) int {
+	return min + rand.Intn(max-min)
 }
