@@ -28,12 +28,12 @@ type GameStarter struct {
 }
 
 func (gs *GameStarter) Handle() error {
-	game, err := game.MakeAGame(gs.MapSize, "game1", gs.EventNum, gs.DataBase)
+	game, err := game.MakeAGame(gs.MapSize, "", gs.EventNum, gs.DataBase)
 	if err != nil {
 		return fmt.Errorf("GameStarter: failed to make a game: %s", err)
 	}
 	gs.User.Games = append(gs.User.Games, game.Id)
-	_, err = gs.DataBase.DB.Query("UPDATE users SET games array_append(games,?) WHERE id=?", game.Id, gs.User.Id)
+	_, err = gs.DataBase.DB.Query("UPDATE users SET games=array_append(games,$1) WHERE id=$2", game.Id, gs.User.Id)
 	if err != nil {
 		return fmt.Errorf("GameStarter: failed to update userDB: %s", err)
 	}
