@@ -7,9 +7,9 @@ import (
 )
 
 type apiResp struct {
-	Error string      `json: error`
-	Code  int         `json: code`
-	Body  interface{} `json: body`
+	Error string      `json:"error"`
+	Code  int         `json:"code"`
+	Body  interface{} `json:"body"`
 }
 
 func SendResp(writer http.ResponseWriter, code int, err error, body interface{}) {
@@ -19,13 +19,11 @@ func SendResp(writer http.ResponseWriter, code int, err error, body interface{})
 	} else {
 		e = err.Error()
 	}
-	resp, _ := json.Marshal(
-		apiResp{
-			Error: e,
-			Code:  code,
-			Body:  body,
-		},
-	)
+
+	apiresp := apiResp{Error: e, Code: code, Body: body}
+
+	resp, _ := json.Marshal(apiresp)
+	fmt.Println(fmt.Sprintf("resp: %#v", string(resp)))
 	fmt.Fprintf(writer, string(resp))
 	return
 

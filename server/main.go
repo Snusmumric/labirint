@@ -2,22 +2,21 @@ package main
 
 import (
 	"db_client"
+	"encoding/json"
 	"fmt"
 	"game"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"reporter"
 	"strconv"
-	"worker_pool"
 	"user"
-	"log"
-	"encoding/json"
+	"worker_pool"
 )
 
 type userbase map[int]user.User       // int - id of players
 type globalScorebase map[int]int      // [user_id] score (global score!? == sum of scores from all games?)           !!!!!!!!
 type globalGameBase map[int]game.Game //[game_id]game
-
 
 const (
 	html_dir         = "server/html/"
@@ -170,7 +169,7 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 			gameToExecute.Gg.Position.Posy++
 		}
 	case "down":
-		if gameToExecute.Gg.Position.Posy >0 {
+		if gameToExecute.Gg.Position.Posy > 0 {
 			gameToExecute.Gg.Position.Posy--
 		}
 	case "right":
@@ -178,7 +177,7 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 			gameToExecute.Gg.Position.Posx++
 		}
 	case "left":
-		if gameToExecute.Gg.Position.Posy >0 {
+		if gameToExecute.Gg.Position.Posy > 0 {
 			gameToExecute.Gg.Position.Posx--
 		}
 	case "stand":
@@ -199,13 +198,10 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 	gameToExecute.Map_master.Field[x][y].Hidden = 0
 	gameToExecute.Map_master.Field[x][y].Kind = 0
 
-
-
 	gameToExecute.Gg.Healthpoints += eventToAppearB
 
-
 	//update the game
-	gameToExecute.MapEventRandomizator(len(eventTextDB)-1)
+	gameToExecute.MapEventRandomizator(len(eventTextDB) - 1)
 	err = game.UpdateTheGame(gameToExecute, LabDB) // update in DB//+
 	if err != nil {
 		fmt.Println(err)
@@ -213,12 +209,12 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	c := struct {
-		User_id int `json:"user_id"`
-		Game_id int `json:"game_id"`
-		X       int `json:"x"`
-		Y       int `json:"y"`
+		User_id int    `json:"user_id"`
+		Game_id int    `json:"game_id"`
+		X       int    `json:"x"`
+		Y       int    `json:"y"`
 		Event   string `json:"event"`
-		Bonus   int `json:"bonus"`
+		Bonus   int    `json:"bonus"`
 	}{User_id: usr.Id, Game_id: gameToExecute.Id, X: gameToExecute.Gg.Position.Posx, Y: gameToExecute.Gg.Position.Posy, Event: eventToAppearT, Bonus: eventToAppearB}
 	jdata, err := json.Marshal(&c)
 	if err != nil {
@@ -272,14 +268,19 @@ func startAction(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	fmt.Println(fmt.Sprintf("wrinter: %v", &writer))
+	holder := make(chan int)
 	gs := user.GameStarter{
-		DataBase: LabDB,
-		User:     usr,
-		MapSize:  commonMapSize,
-		Writer:   writer,
-		EventNum: len(eventTextDB),
+		DataBase:   LabDB,
+		User:       usr,
+		MapSize:    commonMapSize,
+		Writer:     &writer,
+		ConnHolder: holder,
+		EventNum:   len(eventTextDB),
 	}
 	err = WP.AddTaskAsync(&gs, taskSetTimeoutMs)
+
+	_ = <-holder
 
 	if err != nil {
 		reporter.SendResp(writer, 400, fmt.Errorf("timeout"), reporter.EmptyBody)
@@ -337,8 +338,8 @@ func loginAction(writer http.ResponseWriter, request *http.Request) {
 //+
 func registerAction(writer http.ResponseWriter, request *http.Request) {
 	/*
-	input: name, password
-	output: id!=0 / 0 if error (already exists, smth weird)
+		input: name, password
+		output: id!=0 / 0 if error (already exists, smth weird)
 	*/
 
 	err := request.ParseForm()
@@ -381,9 +382,9 @@ func registerAction(writer http.ResponseWriter, request *http.Request) {
 }
 
 func newGameAction(writer http.ResponseWriter, request *http.Request) {
-		/*
-	input: userid
-	output: newgameid!=0
+	/*
+		input: userid
+		output: newgameid!=0
 	*/
 	err := request.ParseForm()
 	if err != nil {

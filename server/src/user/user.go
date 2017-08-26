@@ -6,28 +6,35 @@ import (
 	"game"
 	"net/http"
 	"reporter"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 type User struct {
-	Id     int         `json:"user id number,omitempty"`
-	Name   string      `json:"user name,omitempty"`
-	Pass string
+	Id     int    `json:"user id number,omitempty"`
+	Name   string `json:"user name,omitempty"`
+	Pass   string
 	Games  []int       `json:"game ids',omitempty"`     // game_id`s
 	Scores map[int]int `json:"games' scores,omitempty"` // [game_id`s]score
 }
 
 type GameStarter struct {
-	DataBase *db_client.DBClient
-	User     *User
-	MapSize  int
-	Writer   http.ResponseWriter
-	gameId   int
-	EventNum int
+	DataBase   *db_client.DBClient
+	User       *User
+	MapSize    int
+	Writer     *http.ResponseWriter
+	ConnHolder chan int
+	gameId     int
+	EventNum   int
+}
+
+type GameStarterResp struct {
+	GameId int `json:"game_id"`
 }
 
 func (gs *GameStarter) Handle() error {
+	fmt.Println("Handle started")
+	fmt.Println(fmt.Sprintf("gs: %#v", gs))
 	game, err := game.MakeAGame(gs.MapSize, "", gs.EventNum, gs.DataBase)
 	if err != nil {
 		return fmt.Errorf("GameStarter: failed to make a game: %s", err)
@@ -38,17 +45,23 @@ func (gs *GameStarter) Handle() error {
 		return fmt.Errorf("GameStarter: failed to update userDB: %s", err)
 	}
 	gs.gameId = game.Id
+	fmt.Println("Handle finished")
 	return nil
 }
 
 func (gs *GameStarter) Finish(err error) {
+	fmt.Println("Finish starter")
 	if err != nil {
-		fmt.Fprintf(gs.Writer, "GameStarter failed: %s", err)
+		fmt.Fprintf(*gs.Writer, "GameStarter failed: %s", err)
+		gs.ConnHolder <- 0
 	}
-	reporter.SendResp(gs.Writer, 200, nil, struct {
-		gameId int `json: game_id`
-	}{gs.gameId})
+	body := GameStarterResp{
+		GameId: gs.gameId,
+	}
+	reporter.SendResp(*gs.Writer, 200, nil, body)
 
+	gs.ConnHolder <- 0
+	fmt.Println("Finish finished")
 }
 
 func (u *User) CheckActiveGame(dbc *db_client.DBClient) (bool, error) {
@@ -86,12 +99,17 @@ func GetUserById(dbc *db_client.DBClient, id int) (*User, error) {
 	}
 	defer row.Close()
 	var user User
-	row.Next()
+	if !row.Next() {
+		return nil, fmt.Errorf("not_exists")
+	}
 
 	var uint8Games []uint8
-	err = row.Scan(&user.Id, &user.Name,&user.Pass, &uint8Games)
+	err = row.Scan(&user.Id, &user.Name, &user.Pass, &uint8Games)
+	if err != nil {
+		return nil, err
+	}
 	str := fmt.Sprintf("%s", uint8Games)
-	str = str[1:len(str)-1]
+	str = str[1 : len(str)-1]
 	NumList := strings.Split(str, ",")
 	for _, s := range NumList {
 		j, _ := strconv.Atoi(s)
@@ -124,7 +142,6 @@ func GetIdByUserName(name string, dbc *db_client.DBClient) (int, error) {
 
 	return id, nil
 }
-
 
 func (us *User) UserHaveTheGameWithId(gameId int) (bool, error) {
 	exists := false
