@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"game"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reporter"
 	"strconv"
-	"user"
 	"worker_pool"
-
-	_ "github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"user"
+	"log"
+	"encoding/json"
 )
 
 type userbase map[int]user.User       // int - id of players
 type globalScorebase map[int]int      // [user_id] score (global score!? == sum of scores from all games?)           !!!!!!!!
 type globalGameBase map[int]game.Game //[game_id]game
+
 
 const (
 	html_dir         = "server/html/"
@@ -30,20 +29,37 @@ const (
 
 var WP *worker_pool.WorkerPool
 var LabDB *db_client.DBClient // for userList
+var eventTextDB = make(map[int]string)
+var eventBonusDB = make(map[int]int)
 
 func init() {
 	WP = worker_pool.NewPool(poolCap)
 	WP.Run()
 	LabDB = db_client.New()
+
+	eventTextDB[0] = "Nothing interesting here.\n Just a mermaid on the tree  seductively smiling at you..."
+	eventBonusDB[0] = 0
+
+	eventTextDB[1] = "Smile, a mermaid have kissed you. HP++"
+	eventBonusDB[1] = 1
+
+	eventTextDB[2] = "It's a pity. Troll have injured you with a punch. HP--"
+	eventBonusDB[2] = -1
+
+	eventTextDB[3] = "Heal portion was just under your leg!"
+	eventBonusDB[3] = 1
 }
 
 func main() {
 
 	http.HandleFunc("/", homePage)
-	http.HandleFunc("/move", moveAction)
 	http.HandleFunc("/start", startAction)
-	//http.HandleFunc("/login", login)
-	//http.HandleFunc("/end", endAction)
+
+	http.HandleFunc("/login", loginAction)
+	http.HandleFunc("/register", registerAction)
+	http.HandleFunc("/move", moveAction)
+	http.HandleFunc("/newGame", newGameAction)
+
 	if err := http.ListenAndServe(":9001", nil); err != nil {
 		log.Fatal("failed to start server", err)
 	}
@@ -59,7 +75,13 @@ func main() {
 	//_, _ = user.GetUserById(LabDB,1)
 
 	//correct, _ := LabDB.UserPassCorrect("Dima", "123")
-	//fmt.Println(correct)
+	//UserId, err := user.GetIdByUserName("Dim", LabDB)
+
+	//game3, _ := game.MakeAGame(5, "game1", LabDB)
+	//fmt.Println(game3.Id)
+	//id, err := LabDB.RegistrateNewUser("Kira", "234")
+	//fmt.Println(err)
+	//fmt.Println(id)
 
 }
 
@@ -132,7 +154,7 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	//get the game
-	gameToExecute, err := game.GetTheGame(3, commonMapSize, LabDB)
+	gameToExecute, err := game.GetTheGame(gameid, commonMapSize, LabDB)
 	if err != nil {
 		reporter.SendResp(writer, 400, fmt.Errorf("Game couldn't be loaded from DataBase: %s", err), reporter.EmptyBody)
 		return
@@ -144,38 +166,66 @@ func moveAction(writer http.ResponseWriter, request *http.Request) {
 	//move, move, move!
 	switch MoveStr {
 	case "up":
-		gameToExecute.Gg.Position.Posy++
-	case "dn":
-		gameToExecute.Gg.Position.Posy--
-	case "rt":
-		gameToExecute.Gg.Position.Posx++
-	case "lf":
-		gameToExecute.Gg.Position.Posx--
+		if gameToExecute.Gg.Position.Posy < commonMapSize-1 {
+			gameToExecute.Gg.Position.Posy++
+		}
+	case "down":
+		if gameToExecute.Gg.Position.Posy >0 {
+			gameToExecute.Gg.Position.Posy--
+		}
+	case "right":
+		if gameToExecute.Gg.Position.Posx < commonMapSize-1 {
+			gameToExecute.Gg.Position.Posx++
+		}
+	case "left":
+		if gameToExecute.Gg.Position.Posy >0 {
+			gameToExecute.Gg.Position.Posx--
+		}
+	case "stand":
+
 	}
 
 	//process the event after move
 	// current postion
 	x := gameToExecute.Gg.Position.Posx
 	y := gameToExecute.Gg.Position.Posy
-	//get the event and null the room
+
+	//get the event
 	eventId := gameToExecute.Map_master.Field[x][y].Kind
+	eventToAppearT := eventTextDB[eventId]
+	eventToAppearB := eventBonusDB[eventId]
+
+	//null the room
 	gameToExecute.Map_master.Field[x][y].Hidden = 0
 	gameToExecute.Map_master.Field[x][y].Kind = 0
 
-	switch {
-	case eventId > 0:
-		gameToExecute.Gg.Healthpoints++
-		fmt.Fprintf(writer, "Smile, you get HP++.")
-	case eventId < 0:
-		gameToExecute.Gg.Healthpoints--
-		fmt.Fprintf(writer, "It's a pity, you get injured.")
-	default:
-		fmt.Println("Nothing interesting here.\n Just a mermaid on the tree  seductively smiling at you...")
-	}
+
+
+	gameToExecute.Gg.Healthpoints += eventToAppearB
+
 
 	//update the game
-	err = game.UpdateTheGame(gameToExecute, LabDB) //+
-	fmt.Println(err)
+	gameToExecute.MapEventRandomizator(len(eventTextDB)-1)
+	err = game.UpdateTheGame(gameToExecute, LabDB) // update in DB//+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	c := struct {
+		User_id int `json:"user_id"`
+		Game_id int `json:"game_id"`
+		X       int `json:"x"`
+		Y       int `json:"y"`
+		Event   string `json:"event"`
+		Bonus   int `json:"bonus"`
+	}{User_id: usr.Id, Game_id: gameToExecute.Id, X: gameToExecute.Gg.Position.Posx, Y: gameToExecute.Gg.Position.Posy, Event: eventToAppearT, Bonus: eventToAppearB}
+	jdata, err := json.Marshal(&c)
+	if err != nil {
+		fmt.Println("json error in move action:", err)
+	}
+	//os.Stdout.Write(jdata)
+	fmt.Fprintf(writer, "%s", jdata)
 }
 
 func homePage(writer http.ResponseWriter, request *http.Request) {
@@ -227,20 +277,70 @@ func startAction(writer http.ResponseWriter, request *http.Request) {
 		User:     usr,
 		MapSize:  commonMapSize,
 		Writer:   writer,
+		EventNum: len(eventTextDB),
 	}
 	err = WP.AddTaskAsync(&gs, taskSetTimeoutMs)
 
 	if err != nil {
 		reporter.SendResp(writer, 400, fmt.Errorf("timeout"), reporter.EmptyBody)
-		return
 	}
 }
 
-func login(writer http.ResponseWriter, request *http.Request) {
+//+
+func loginAction(writer http.ResponseWriter, request *http.Request) {
 	/*
 		input: name, password
 		output: id!=0 / 0 if error (not exists, wrong combination)
 	*/
+	err := request.ParseForm()
+	if err != nil {
+		reporter.SendResp(writer, 400, fmt.Errorf("Invalid login request"), reporter.EmptyBody)
+		return
+	}
+
+	// get user-name
+	name := request.URL.Query().Get("name")
+	if name == "" {
+		reporter.SendResp(writer, 400, fmt.Errorf("name_required"), reporter.EmptyBody)
+		return
+	}
+
+	// get password
+	pass := request.URL.Query().Get("pass")
+	if pass == "" {
+		reporter.SendResp(writer, 400, fmt.Errorf("password_required"), reporter.EmptyBody)
+		return
+	}
+
+	// check user exists
+	NameExists, err := LabDB.UserNameExists(name)
+	if !NameExists {
+		reporter.SendResp(writer, 400, fmt.Errorf("not_exist"), reporter.EmptyBody)
+		return
+	}
+
+	CorectPass, err := LabDB.UserPassCorrect(name, pass)
+	if !CorectPass {
+		reporter.SendResp(writer, 400, fmt.Errorf("password_wrong"), reporter.EmptyBody)
+		return
+	}
+
+	UserId, err := user.GetIdByUserName(name, LabDB)
+	if err != nil {
+		reporter.SendResp(writer, 400, fmt.Errorf("Some problem in login logic!\nTell the admin!"), reporter.EmptyBody)
+		return
+	}
+
+	fmt.Fprintf(writer, "%d", UserId)
+}
+
+//+
+func registerAction(writer http.ResponseWriter, request *http.Request) {
+	/*
+	input: name, password
+	output: id!=0 / 0 if error (already exists, smth weird)
+	*/
+
 	err := request.ParseForm()
 	if err != nil {
 		reporter.SendResp(writer, 400, fmt.Errorf("Invalid login request"), reporter.EmptyBody)
@@ -263,26 +363,32 @@ func login(writer http.ResponseWriter, request *http.Request) {
 
 	// check user exists
 	NameExists, err := LabDB.UserNameExists(name)
-	if !NameExists {
-		reporter.SendResp(writer, 400, fmt.Errorf("Such user doesn't exist: %s", err), reporter.EmptyBody)
+	if NameExists {
+		reporter.SendResp(writer, 400, fmt.Errorf("Such user slready exists!"), reporter.EmptyBody)
 		return
 	}
 
-	CorectPass, err := LabDB.UserPassCorrect(name, pass)
-	if !CorectPass {
-		reporter.SendResp(writer, 400, fmt.Errorf("Password is wrong: %s", err), reporter.EmptyBody)
+	// registration! +
+	// return id of just registrated person
+	UserId, err := LabDB.RegistrateNewUser(name, pass)
+	if err != nil {
+		reporter.SendResp(writer, 400, fmt.Errorf("Some problem in register logic!\nTell the admin!"), reporter.EmptyBody)
 		return
 	}
 
-	fmt.Println(CorectPass)
+	fmt.Fprintf(writer, "%d", UserId)
 
-	fmt.Fprintf(writer, "%d")
 }
 
-func register(res http.ResponseWriter, req *http.Request) {
-	/*
-		input: name, password
-		output: id!=0 / 0 if error (already exists, smth weird)
+func newGameAction(writer http.ResponseWriter, request *http.Request) {
+		/*
+	input: userid
+	output: newgameid!=0
 	*/
+	err := request.ParseForm()
+	if err != nil {
+		reporter.SendResp(writer, 400, fmt.Errorf("Invalid login request"), reporter.EmptyBody)
+		return
+	}
 
 }
