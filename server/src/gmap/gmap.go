@@ -1,8 +1,10 @@
 package gmap
 
 import (
-	"Cell"
+	"cell"
 	"fmt"
+	"time"
+	"math/rand"
 )
 
 type MapParams struct {
@@ -28,6 +30,18 @@ func MakeAMap(size int) *Gmap {
 	return &Gmap{
 		Params: MapParams{Xsize: size, Ysize: size},
 		Field:  cellarray,
+	}
+}
+
+func (gmap Gmap)MapEventRandomizator(eventsNum int) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	field := gmap.Field
+	for _, row := range field {
+		for _, cel := range row {
+			if cel.Kind != 0 {
+				cel.Kind = r.Perm(eventsNum)[0]+1
+			}
+		}
 	}
 }
 
@@ -59,3 +73,5 @@ func (m *Gmap) InsertString() string {
 	//fmt.Println(str)
 	return str
 }
+
+
