@@ -6,13 +6,14 @@ import (
 	"game"
 	"net/http"
 	"reporter"
-	"strconv"
 	"strings"
+	"strconv"
 )
 
 type User struct {
 	Id     int         `json:"user id number,omitempty"`
 	Name   string      `json:"user name,omitempty"`
+	Pass string
 	Games  []int       `json:"game ids',omitempty"`     // game_id`s
 	Scores map[int]int `json:"games' scores,omitempty"` // [game_id`s]score
 }
@@ -23,10 +24,11 @@ type GameStarter struct {
 	MapSize  int
 	Writer   http.ResponseWriter
 	gameId   int
+	EventNum int
 }
 
 func (gs *GameStarter) Handle() error {
-	game, err := game.MakeAGame(gs.MapSize, "game1", gs.DataBase)
+	game, err := game.MakeAGame(gs.MapSize, "game1", gs.EventNum, gs.DataBase)
 	if err != nil {
 		return fmt.Errorf("GameStarter: failed to make a game: %s", err)
 	}
@@ -78,23 +80,18 @@ func (u *User) CheckActiveGame(dbc *db_client.DBClient) (bool, error) {
 
 func GetUserById(dbc *db_client.DBClient, id int) (*User, error) {
 	row, err := dbc.DB.Query("SELECT * FROM users WHERE id=$1", id)
+	fmt.Println(err)
 	if err != nil {
 		return nil, err
 	}
 	defer row.Close()
 	var user User
-	if !row.Next() {
-		return nil, fmt.Errorf("user not exist")
-	}
+	row.Next()
 
-	fmt.Println(err)
 	var uint8Games []uint8
-	err = row.Scan(&user.Id, &user.Name, &uint8Games)
-	if err != nil {
-		return nil, err
-	}
+	err = row.Scan(&user.Id, &user.Name,&user.Pass, &uint8Games)
 	str := fmt.Sprintf("%s", uint8Games)
-	str = str[1 : len(str)-1]
+	str = str[1:len(str)-1]
 	NumList := strings.Split(str, ",")
 	for _, s := range NumList {
 		j, _ := strconv.Atoi(s)
@@ -127,6 +124,7 @@ func GetIdByUserName(name string, dbc *db_client.DBClient) (int, error) {
 
 	return id, nil
 }
+
 
 func (us *User) UserHaveTheGameWithId(gameId int) (bool, error) {
 	exists := false
