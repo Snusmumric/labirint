@@ -1,7 +1,7 @@
 package gmap
 
 import (
-	"cell"
+	"Cell"
 	"fmt"
 	"time"
 	"math/rand"
@@ -33,16 +33,18 @@ func MakeAMap(size int) *Gmap {
 	}
 }
 
-func (gmap Gmap)MapEventRandomizator(eventsNum int) {
+func (gmap *Gmap)MapEventRandomizator(eventsNum int, size int) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	field := gmap.Field
-	for _, row := range field {
-		for _, cel := range row {
-			if cel.Kind != 0 {
-				cel.Kind = r.Perm(eventsNum)[0]+1
+
+	for i:=0; i<size; i++ {
+		for j:=0; j<size; j++ {
+			if field[i][j].Kind != 0 {
+				field[i][j].Kind = r.Perm(eventsNum)[0] + 1
 			}
 		}
 	}
+	gmap.Field = field
 }
 
 func MakeZeroMap(size int) *Gmap {
