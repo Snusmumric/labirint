@@ -13,9 +13,15 @@ type apiResp struct {
 }
 
 func SendResp(writer http.ResponseWriter, code int, err error, body interface{}) {
+	var e string
+	if err == nil {
+		e = ""
+	} else {
+		e = err.Error()
+	}
 	resp, _ := json.Marshal(
 		apiResp{
-			Error: err.Error(),
+			Error: e,
 			Code:  code,
 			Body:  body,
 		},
